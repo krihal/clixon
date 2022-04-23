@@ -1,0 +1,208 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# 
+# Copyright (C) 2009-2016 Olof Hagsand and Benny Holmgren
+# Copyright (C) 2017-2019 Olof Hagsand
+# Copyright (C) 2020-2022 Olof Hagsand and Rubicon Communications, LLC(Netgate)
+#
+# This file is part of CLIXON
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Alternatively, the contents of this file may be used under the terms of
+# the GNU General Public License Version 3 or later (the "GPL"),
+# in which case the provisions of the GPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of the GPL, and not to allow others to
+# use your version of this file under the terms of Apache License version 2, 
+# indicate your decision by deleting the provisions above and replace them with
+# the notice and other provisions required by the GPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the Apache License version 2 or the GPL.
+#
+# ***** END LICENSE BLOCK *****
+#
+# Define CLIGEN_LIB for static CLIgen linking
+#
+# For remote case of loading cli plugins statically:
+# Define EXTRAS for statically load plugins, together with enabling CLIXON_STATIC_PLUGINS
+
+VPATH       	= @srcdir@
+srcdir  	= @srcdir@
+top_srcdir  	= @top_srcdir@
+CC		= @CC@
+CFLAGS  	= @CFLAGS@ 
+LINKAGE         = @LINKAGE@
+CPPFLAGS  	= @CPPFLAGS@
+ifeq ($(LINKAGE),dynamic)
+CPPFLAGS  	+= -fPIC
+endif
+SH_SUFFIX	= @SH_SUFFIX@
+LIBSTATIC_SUFFIX = @LIBSTATIC_SUFFIX@
+INSTALLFLAGS  	= @INSTALLFLAGS@ 
+LDFLAGS 	= @LDFLAGS@	
+ifneq ($(LINKAGE),dynamic)
+ # -rdynamic for using -ldl
+LDFLAGS 	+=  -rdynamic
+endif
+
+prefix 		= @prefix@
+datarootdir	= @datarootdir@
+exec_prefix 	= @exec_prefix@
+bindir 		= @bindir@
+libdir		= @libdir@
+mandir		= @mandir@
+libexecdir	= @libexecdir@
+localstatedir	= @localstatedir@
+sysconfdir	= @sysconfdir@
+includedir	= @includedir@
+HOST_VENDOR     = @host_vendor@
+
+CLIXON_MAJOR    = @CLIXON_VERSION_MAJOR@
+CLIXON_MINOR    = @CLIXON_VERSION_MINOR@
+
+# Use this clixon lib for linking
+ifeq ($(LINKAGE),dynamic)
+	CLIXON_LIB	= libclixon$(SH_SUFFIX).$(CLIXON_MAJOR).$(CLIXON_MINOR)
+else
+	CLIXON_LIB	= libclixon$(LIBSTATIC_SUFFIX)
+endif # LINKAGE
+
+# For dependency. A little strange that we rely on it being built in the src dir
+# even though it may exist in $(libdir). But the new version may not have been installed yet.
+LIBDEPS		= $(top_srcdir)/lib/src/$(CLIXON_LIB) 
+
+LIBS          = -L$(top_srcdir)/lib/src $(top_srcdir)/lib/src/$(CLIXON_LIB) @LIBS@
+
+INCLUDES	= -I. -I$(top_srcdir)/lib -I$(top_srcdir)/include -I$(top_srcdir) @INCLUDES@
+
+# Name of application
+APPL		= clixon_snmp
+
+# Not accessible from plugin
+APPSRC		= snmp_main.c
+APPOBJ		= $(APPSRC:.c=.o)
+
+# Name of lib
+MYNAME		= clixon_snmp
+MYLIBDYNAMIC    = lib$(MYNAME)$(SH_SUFFIX).$(CLIXON_MAJOR).$(CLIXON_MINOR)
+MYLIBSO         = lib$(MYNAME)$(SH_SUFFIX).$(CLIXON_MAJOR)
+MYLIBLINK       = lib$(MYNAME)$(SH_SUFFIX)
+MYLIBSTATIC     = lib$(MYNAME)$(LIBSTATIC_SUFFIX)
+
+all:	 $(APPL) test
+
+ifeq ($(LINKAGE),dynamic)
+all:	 $(MYLIBDYNAMIC)
+else
+all:	 $(MYSTATIC)
+endif
+
+# Dependency of clixon library
+$(top_srcdir)/lib/src/$(CLIXON_LIB):
+	(cd $(top_srcdir)/lib/src && $(MAKE) $(MFLAGS) $(CLIXON_LIB))
+
+clean:
+	rm -f $(LIBOBJ) $(APPOBJ) $(APPL)
+	rm -f $(MYLIBDYNAMIC) $(MYLIBSTATIC) $(MYLIBSO) $(MYLIBLINK) test test.c
+	rm -f *.core *.gcda *.gcno *.gcov # coverage
+
+distclean: clean
+	rm -f Makefile *~ .depend 
+
+# Put daemon in bin 
+# Put other executables in libexec/
+# Also create a libexec/ directory for writeable/temporary files.
+# Put config file in etc/
+install: install-lib $(APPL) 
+	install -d -m 0755 $(DESTDIR)$(bindir)
+	install -m 0755 $(INSTALLFLAGS) $(APPL) $(DESTDIR)$(bindir)
+
+ifeq ($(LINKAGE),dynamic)
+install-lib: $(MYLIBDYNAMIC)
+	install -d -m 0755 $(DESTDIR)$(libdir)
+	install -m 0644 $(INSTALLFLAGS) $< $(DESTDIR)$(libdir)
+	install -d -m 0755 $(DESTDIR)$(libdir)/clixon/plugins/cli
+	ln -sf $< $(DESTDIR)$(libdir)/$(MYLIBSO)     # -l:libclixon_cli.so.2
+	ln -sf $(MYLIBSO) $(DESTDIR)$(libdir)/$(MYLIBLINK) # -l:libclixon_cli.so
+else
+install-lib: $(MYLIBSTATIC)
+	install -d -m 0755 $(DESTDIR)$(libdir)
+	install -m 0644 $(INSTALLFLAGS) $< $(DESTDIR)$(libdir)
+	install -d -m 0755 $(DESTDIR)$(libdir)/clixon/plugins/cli
+endif
+
+install-include:	clixon_snmp.h
+	install -d -m 0755 $(DESTDIR)$(includedir)/clixon
+	install -m 0644 $^ $(DESTDIR)$(includedir)/clixon
+
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/$(APPL)
+	rm -f $(DESTDIR)$(libdir)/$(MYLIBLINK)*
+	rm -f $(DESTDIR)$(libdir)/$(MYLIBSTATIC)
+	rm -f $(DESTDIR)$(libdir)/$(MYLIBDYNAMIC)
+	rm -f $(DESTDIR)$(includedir)/clixon/*
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+.c.o:
+	$(CC) $(INCLUDES) $(CPPFLAGS) -D__PROGRAM__=\"$(APPL)\" $(CFLAGS) -c $<
+
+# Just link test programs
+test.c	:
+	echo "int main(){}" > $@
+
+test: 	test.c $(LIBOBJ)
+
+ifeq ($(LINKAGE),dynamic)
+test:   $(MYLIBDYNAMIC)
+else
+test:   $(MYLIBSTATIC)
+endif
+	$(CC) $(INCLUDES) $(LDFLAGS) -L . $^ $(LIBS) -o $@
+
+# Note1: static linking of clixon_cli must have:
+# 1) -rdynamic
+# 2) $(APPOBJ)
+# Note2: LIBDEPS is just a mechanism to ensure libclixon.so is built
+$(APPL): $(APPOBJ) $(LIBDEPS)
+ifeq ($(LINKAGE),dynamic)
+$(APPL): $(MYLIBDYNAMIC)
+	$(CC) $(LDFLAGS) $(APPOBJ) $(EXTRAS) $(CLIGEN_LIB) $(LIBS) -L. $< -o $@
+else
+$(APPL): $(LIBOBJ)
+	$(CC) $(LDFLAGS) $(APPOBJ) $(EXTRAS) $(LIBOBJ) $(CLIGEN_LIB) $(LIBS) -o $@
+endif
+
+$(MYLIBDYNAMIC) : $(LIBOBJ) $(LIBDEPS)
+ifeq ($(HOST_VENDOR),apple)
+	$(CC) $(LDFLAGS) -shared -undefined dynamic_lookup -o $@ $(LIBOBJ) $(LIBS)
+else
+	$(CC) $(LDFLAGS) -shared -Wl,-soname,$(MYLIBSO) -o $@ $(LIBOBJ) $(LIBS) -Wl,-soname=$(MYLIBSO)
+endif
+
+# link-name is needed for application linking, eg for clixon_cli and clixon_config
+$(MYLIBLINK) : $(MYLIBDYNAMIC)
+
+$(MYLIBSTATIC) : $(LIBOBJ) $(LIBDEPS)
+	ar -crs $@ $(LIBOBJ) $(LIBDEPS)
+
+TAGS:
+	find . -name '*.[chyl]' -print | etags -
+
+depend:
+	$(CC) $(DEPENDFLAGS) @DEFS@ $(INCLUDES) $(CFLAGS) -MM $(LIBSRC) $(APPSRC) > .depend
+
+#include .depend
+

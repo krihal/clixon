@@ -351,6 +351,7 @@ AC_OUTPUT(Makefile
 	  apps/backend/Makefile 
 	  apps/netconf/Makefile
 	  apps/restconf/Makefile
+	  apps/snmp/Makefile
 	  include/Makefile
 	  etc/Makefile
 	  etc/clixonrc

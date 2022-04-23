@@ -42,6 +42,7 @@ SHELL	= /bin/sh
 SUBDIRS  = backend
 SUBDIRS += cli
 SUBDIRS += netconf
+SUBDIRS += snmp
 
 # See configure.ac
 ifdef with_restconf
