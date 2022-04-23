@@ -39,6 +39,10 @@ Expected: May 2022
 
 ### New features
 
+* Clixon SNMP frontend
+  * net-snmp and MIB to YANG translation
+  * Experimental work
+
 * Extended the Restconf implementation with a limited http-data static service
   * Added two new config options to clixon-config.yang:
      * `CLICON_HTTP_DATA_PATH`
