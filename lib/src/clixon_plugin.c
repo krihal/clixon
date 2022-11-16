@@ -49,6 +49,7 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <termios.h>
+#include <libgen.h>
 #include <sys/stat.h>
 #include <sys/param.h>
 
@@ -71,6 +72,10 @@
 #include "clixon_netconf_lib.h"
 #include "clixon_validate.h"
 #include "clixon_plugin.h"
+
+#ifdef WITH_PYTHON
+#include <Python.h>
+#endif
 
 /*
  * Private types
@@ -298,6 +303,62 @@ clixon_plugin_find(clicon_handle h,
     return NULL;
 }
 
+/* ! Load a Python plugin and call its init-function
+ *
+ */
+static int
+plugin_load_py(clicon_handle h,
+                char           *file, /* note modified */
+                const char     *function,
+                int             dlflags,
+                clixon_plugin_t **cpp)
+{
+    char *filename = basename(file);
+    char *filepath = dirname(file);
+    int sysstrlen = strlen(filepath) + strlen("sys.path.append(\"\")");
+    char *sysstr = calloc(sysstrlen + 1, sizeof(char));
+
+    PyObject *module;
+    PyObject *method;
+    PyObject *pyname;
+
+    filename[strlen(filename) - 3] = '\0';
+
+    if ((snprintf(sysstr,
+		  sysstrlen + 1,
+		  "sys.path.append(\"%s\")",
+		  filepath)) <= 0) {
+	return -1;
+    }
+
+    Py_Initialize();
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString(sysstr);
+
+    pyname = PyUnicode_DecodeFSDefault(filename);
+    module = PyImport_Import(pyname);
+
+    if (module == NULL) {
+	PyErr_Print();
+	return -1;
+    }
+
+    method = PyObject_GetAttrString(module, "test");
+
+    if (method == NULL || !PyCallable_Check(method)) {
+	PyErr_Print();
+	return 0;
+    }
+
+    if (!PyObject_CallObject(method, NULL)) {
+	PyErr_Print();
+    }
+
+    Py_Finalize();
+
+    return 0;
+}
+
 /*! Load a dynamic plugin object and call its init-function
  * @param[in]  h        Clicon handle
  * @param[in]  file     Which plugin to load
@@ -412,7 +473,7 @@ clixon_plugins_load(clicon_handle h,
     int            i;
     char           filename[MAXPATHLEN];
     clixon_plugin_t *cp = NULL;
-    int            ret;
+    int            ret = 0;
     plugin_module_struct *ms = plugin_module_struct_get(h);
 
     clicon_debug(1, "%s", __FUNCTION__); 
@@ -420,16 +481,29 @@ clixon_plugins_load(clicon_handle h,
         clicon_err(OE_PLUGIN, EINVAL, "plugin module not initialized");
         goto done;
     }
+
     /* Get plugin objects names from plugin directory */
-    if((ndp = clicon_file_dirent(dir, &dp, regexp?regexp:"(.so)$", S_IFREG)) < 0)
+    if((ndp = clicon_file_dirent(dir, &dp, regexp?regexp:"(.so|.py)$", S_IFREG)) < 0)
         goto done;
     /* Load all plugins */
+
     for (i = 0; i < ndp; i++) {
         snprintf(filename, MAXPATHLEN-1, "%s/%s", dir, dp[i].d_name);
         clicon_debug(1, "DEBUG: Loading plugin '%.*s' ...", 
                      (int)strlen(filename), filename);
-        if ((ret = plugin_load_one(h, filename, function, RTLD_NOW, &cp)) < 0)
-            goto done;
+
+	if (strcmp(".py", filename + strlen(filename) - 3) == 0) {
+#ifdef WITH_PYTHON
+	    if ((ret = plugin_load_py(h, filename, function, RTLD_NOW, &cp)) < 0)
+		goto done;
+#else
+	    clicon_debug(1, "DEBUG: Skipping Python plugin '%s'", filename);
+#endif
+	} else {
+	    if ((ret = plugin_load_one(h, filename, function, RTLD_NOW, &cp)) < 0)
+		goto done;
+	}
+
         if (ret == 0)
             continue;
         ADDQ(cp, ms->ms_plugin_list);
