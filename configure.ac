@@ -377,6 +377,33 @@ AC_DEFINE_UNQUOTED(CLIXON_DEFAULT_CONFIG,"${CLIXON_DEFAULT_CONFIG}",[Location fo
 # Dummy to disable native language support (nls) to remove warnings in buildroot
 AC_ARG_ENABLE(nls)
 
+# This is for Python support
+AC_ARG_ENABLE(python, AS_HELP_STRING([--enable-python],[Enable Python plugin support]),[
+   if test "$enableval" = no; then
+      enable_python=no
+   else
+      enable_python=yes
+   fi
+  ],
+  [ enable_python=no])
+AC_MSG_RESULT(checking python is enabled: $enable_python)
+
+if test "$enable_python" = "yes"; then
+
+PYINCLUDES=`python3-config --includes | awk '{print $2}' | sed 's/-I//'`
+AC_CHECK_HEADER($PYINCLUDES/Python.h,, AC_MSG_ERROR(Python.h missing. Try: apt-get install python3-dev libpython3-dev on Debian based systems))
+
+AC_PATH_PROGS(PATHPYCONF, [python3-config])
+if test -z "$PATHPYCONF" ; then
+  AC_MSG_ERROR(python3-config missing. Try: apt-get install python3-dev libpython3-dev on Debian based systems.);
+fi
+
+CPPFLAGS+=" `$PATHPYCONF --embed --includes`"
+CPPFLAGS+=" -DWITH_PYTHON"
+LIBS+=" `$PATHPYCONF --embed --libs`"
+LDFLAGS+=" `$PATHPYCONF --embed --ldflags`"
+fi
+
 AH_BOTTOM([#include <clixon_custom.h>])
 
 AC_OUTPUT(Makefile
