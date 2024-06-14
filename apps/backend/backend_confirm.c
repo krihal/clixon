@@ -772,7 +772,7 @@ from_client_cancel_commit(clixon_handle h,
         cancel_rollback_event(h);
         if (do_rollback(h, NULL) < 0)
             goto done;
-        cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+        cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
         clixon_log(h, LOG_INFO, "a confirmed-commit has been cancelled by client request");
     }
     retval = 0;
@@ -804,7 +804,7 @@ from_client_confirmed_commit(clixon_handle h,
     /* If <confirmed/> is *not* present, this will conclude the confirmed-commit, so cancel the rollback. */
     if (!xe_confirmed(xe) && cc_valid) {
         cancel_confirmed_commit(h);
-        cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+        cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
         goto dontcommit;
     }
     retval = 1;

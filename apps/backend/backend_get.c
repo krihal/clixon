@@ -64,7 +64,7 @@
 
 /* clixon */
 #include <clixon/clixon.h>
-
+#include <clixon/clixon_data.h>
 #include "clixon_backend_client.h"
 #include "clixon_backend_plugin.h"
 #include "clixon_backend_commit.h"
@@ -409,7 +409,7 @@ get_nacm_and_reply(clixon_handle        h,
 {
     int     retval = -1;
     cxobj  *xnacm = NULL;
-
+    char   *message_id = NULL;
     /* Pre-NACM access step */
     xnacm = clicon_nacm_cache(h);
     if (xnacm != NULL){ /* Do NACM validation */
@@ -417,7 +417,10 @@ get_nacm_and_reply(clixon_handle        h,
         if (nacm_datanode_read(h, xret, xvec, xlen, username, xnacm) < 0) 
             goto done;
     }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\">", NETCONF_BASE_NAMESPACE);     /* OK */
+
+    message_id = clicon_message_id_get(h);
+
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\">", NETCONF_BASE_NAMESPACE, message_id);     /* OK */
     if (xret==NULL)
         cprintf(cbret, "<data/>");
     else{

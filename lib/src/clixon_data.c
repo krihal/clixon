@@ -591,6 +591,19 @@ clicon_username_get(clixon_handle h)
     return (char*)clicon_hash_value(cdat, "username", NULL);
 }
 
+/*! Get authorized message_id
+ *
+ * @param[in]  h   Clixon handle
+ * @retval     message_id
+ */
+char *
+clicon_message_id_get(clixon_handle h)
+{
+    clicon_hash_t  *cdat = clicon_data(h);
+
+    return (char*)clicon_hash_value(cdat, "message_id", NULL);
+}
+
 /*! Set authorized user name
  *
  * @param[in]  h   Clixon handle
@@ -606,6 +619,23 @@ clicon_username_set(clixon_handle h,
     if (username == NULL)
         return clicon_hash_del(cdat, "username");
     return clicon_hash_add(cdat, "username", username, strlen(username)+1)==NULL?-1:0;
+}
+
+/*! Set message-id
+ *
+ * @param[in]  h   Clixon handle
+ * @param[in]  message_id
+ * @note Just keep note of it, dont allocate it or so.
+ */
+int
+clicon_message_id_set(clixon_handle h,
+                    void         *message_id)
+{
+    clicon_hash_t  *cdat = clicon_data(h);
+
+    if (message_id == NULL)
+        return clicon_hash_del(cdat, "message_id");
+    return clicon_hash_add(cdat, "message_id", message_id, strlen(message_id)+1)==NULL?-1:0;
 }
 
 /*! Get backend daemon startup status

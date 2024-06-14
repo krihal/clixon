@@ -835,7 +835,7 @@ from_client_commit(clixon_handle h,
     if (ret == 0)
         clixon_debug(CLIXON_DBG_BACKEND, "Commit candidate failed");
     else
-        cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+        cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -889,7 +889,7 @@ from_client_discard_changes(clixon_handle h,
     if (clicon_option_bool(h, "CLICON_AUTOLOCK")){
         xmldb_unlock(h, "candidate");
     }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -929,7 +929,7 @@ from_client_validate(clixon_handle h,
     if ((ret = candidate_validate(h, db, cbret)) < 0)
         goto done;
     if (ret == 1)
-        cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+        cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:

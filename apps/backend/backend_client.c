@@ -732,7 +732,7 @@ from_client_edit_config(clixon_handle h,
         clixon_err(OE_NETCONF, EINVAL, "Internal error: cbret is not empty");
         goto done;
     }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
     if (clicon_data_get(h, "objectexisted", &val) == 0)
         cprintf(cbret, " %s:objectexisted=\"%s\" xmlns:%s=\"%s\"",
                 CLIXON_LIB_PREFIX, val,
@@ -821,7 +821,7 @@ from_client_copy_config(clixon_handle h,
         goto ok;
     }
     xmldb_modified_set(h, target, 1); /* mark as dirty */
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -897,7 +897,7 @@ from_client_delete_config(clixon_handle h,
         goto ok;
     }
     xmldb_modified_set(h, target, 1); /* mark as dirty */
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
   done:
@@ -956,7 +956,7 @@ from_client_lock(clixon_handle h,
         goto done;
     if (ret == 0)
         goto ok;
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -1024,7 +1024,7 @@ from_client_unlock(clixon_handle h,
         /* user callback */
         if (clixon_plugin_lockdb_all(h, db, 0, id) < 0)
             goto done;
-        if (cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE) < 0)
+        if (cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h)) < 0)
             goto done;
     }
  ok:
@@ -1058,7 +1058,7 @@ from_client_close_session(clixon_handle h,
     if (release_all_dbs(h, id) < 0)
         return -1;
     stream_ss_delete_all(h, ce_event_cb, (void*)ce);
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
     return 0;
 }
 
@@ -1103,7 +1103,7 @@ from_client_kill_session(clixon_handle h,
     }
     if (release_all_dbs(h, id) < 0)
         goto done;
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -1208,7 +1208,7 @@ from_client_create_subscription(clixon_handle h,
         if (stream_replay_trigger(h, stream, ce_event_cb, (void*)ce) < 0)
             goto done;
     }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
   done:
@@ -1316,8 +1316,8 @@ from_client_get_schema(clixon_handle h,
             goto done;
         goto ok;
     }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><data xmlns=\"%s\">",
-            NETCONF_BASE_NAMESPACE, NETCONF_MONITORING_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><data xmlns=\"%s\">",
+            NETCONF_BASE_NAMESPACE, NETCONF_MONITORING_NAMESPACE, clicon_message_id_get(h));
     if ((cbyang = cbuf_new()) == NULL){
         clixon_err(OE_UNIX, errno, "cbuf_new");
         goto done;
@@ -1371,7 +1371,7 @@ from_client_debug(clixon_handle h,
     clixon_debug_init(h, level); /* 0: dont debug, 1:debug */
     setlogmask(LOG_UPTO(level?LOG_DEBUG:LOG_INFO)); /* for syslog */
     clixon_log(h, LOG_NOTICE, "%s debug:%d", __FUNCTION__, clixon_debug_get());
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -1395,7 +1395,7 @@ from_client_ping(clixon_handle h,
                  void         *arg,
                  void         *regarg)
 {
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
     return 0;
 }
 
@@ -1429,7 +1429,7 @@ from_client_stats(clixon_handle h,
     if ((str = xml_find_body(xe, "modules")) != NULL)
         modules = strcmp(str, "true") == 0;
     yspec = clicon_dbspec_yang(h);
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\">", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\">", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
     cprintf(cbret, "<global xmlns=\"%s\">", CLIXON_LIB_NS);
     nr=0;
     xml_stats_global(&nr);
@@ -1536,7 +1536,7 @@ from_client_restart_plugin(clixon_handle h,
         if (ret == 0)
             goto ok; /* cbret set */
    }
-    cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE);
+    cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok/></rpc-reply>", NETCONF_BASE_NAMESPACE, clicon_message_id_get(h));
  ok:
     retval = 0;
  done:
@@ -1582,8 +1582,8 @@ from_client_process_control(clixon_handle  h,
     else{
         if (clixon_process_operation(h, name, op, 1) < 0)
             goto done;
-        cprintf(cbret, "<rpc-reply xmlns=\"%s\"><ok xmlns=\"%s\"/></rpc-reply>",
-                NETCONF_BASE_NAMESPACE, CLIXON_LIB_NS);
+        cprintf(cbret, "<rpc-reply xmlns=\"%s\" message-id=\"%s\"><ok xmlns=\"%s\"/></rpc-reply>",
+                NETCONF_BASE_NAMESPACE, clicon_message_id_get(h), CLIXON_LIB_NS);
     }
     retval = 0;
  done:
@@ -1650,6 +1650,7 @@ from_client_msg(clixon_handle        h,
     cbuf                *cbret = NULL; /* return message */
     int                  ret;
     char                *username;
+    char                *message_id;
     yang_stmt           *yspec;
     yang_stmt           *ye;
     yang_stmt           *ymod;
@@ -1784,8 +1785,11 @@ from_client_msg(clixon_handle        h,
 
     xe = NULL;
     username = xml_find_value(x, "username");
+    message_id = xml_find_value(x, "message-id");
+
     /* May be used by callbacks, etc */
     clicon_username_set(h, username);
+    clicon_message_id_set(h, message_id);
     while ((xe = xml_child_each(x, xe, CX_ELMNT)) != NULL) {
         rpc = xml_name(xe);
         if ((ye = xml_spec(xe)) == NULL){
